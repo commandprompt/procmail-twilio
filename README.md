@@ -68,9 +68,11 @@ You need Ansible to install procmail-twilio.
 
 Just run these commands in your terminal:
 
-`$ git clone https://github.com/commandprompt/procmail-twilio.git`
-`$ cd procmail-twilio`
-`$ ansible-playbook run.yml --ask-vault-pass -K`
+```
+$ git clone https://github.com/commandprompt/procmail-twilio.git
+$ cd procmail-twilio
+$ ansible-playbook run.yml --ask-vault-pass -K
+```
 
 ### Configure playbook
 

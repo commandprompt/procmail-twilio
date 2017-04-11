@@ -80,7 +80,9 @@ Edit roles/procmail-twilio/vars/main.yml and set system username, filesystem pat
 
 We highly recommend that you ecnrypt the vars file after entering your Twilio account credentials:
 
-`$ ansible-vault encrypt roles/procmail-twilio/vars/main.yml`
+```
+$ ansible-vault encrypt roles/procmail-twilio/vars/main.yml
+```
 
 You may also want to modify some template files but you don't really have to.
 

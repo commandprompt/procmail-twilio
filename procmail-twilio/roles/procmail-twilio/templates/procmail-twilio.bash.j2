@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+
+twldir="{{virtualenv_path}}"
+phones="{{phonesdir}}/phones.sh"
+
+source "$phones"
+
+# Change directory to our python virtualenv
+cd $twldir
+
+# Activate the virtualenv
+source bin/activate
+
+# Execute the python script that makes the call
+python procmail-twilio.py $oncall $backup $tertiary

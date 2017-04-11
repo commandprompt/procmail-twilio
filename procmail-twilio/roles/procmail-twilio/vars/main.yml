@@ -1,0 +1,28 @@
+# System user name and app name alias
+username: "procmail-twilio"
+
+rootdir: "/home/{{ username }}"
+datadir: "{{ rootdir }}/prctwl-data"
+logdir: "{{ datadir }}/logs"
+phonesdir: "/var/www/html/phonesdir"
+
+# Python virutal environment for Twilio
+virtualenv_path: "{{datadir}}/twilio"
+httprootdir: "/var/www/html/{{ username }}"
+
+# Twilio account credentials
+account_sid: "BZ62270014z14e1354aej1d66d5ea932v6"
+auth_token: "57f3e13321841e31cefd4c137f5baeff1"
+# Twilio phone number
+twilionumber: "+1xxxxxxxxxx"
+# A TwiML file name and HTTP(S) location of the file
+twimlname: "twiml.html"
+twiml_url: "https://{{ansible_fqdn}}/{{username}}/{{twimlname}}"
+# Number of seconds to wait between checking call status
+waittime: 300
+callslogfile: "{{logdir}}/procmail-twilio-calls.log"
+procmaillog: "{{logdir}}/procmail.log"
+
+# Filesystem locations of the TwiML file
+twimlfile: "{{datadir}}/{{twimlname}}"
+twimlsymlink: "{{httprootdir}}/{{twimlname}}"

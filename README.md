@@ -86,3 +86,65 @@ $ ansible-vault encrypt roles/procmail-twilio/vars/main.yml
 
 You may also want to modify some template files but you don't really have to.
 
+## Known Issues
+
+### E-mail Quote Chain
+If a matching string is found in an e-mail quote, procmail will dispatch a call.
+
+Sometimes people will reply to an Emergency ticket e-mail notification via e-mail by quoting the original e-mail message.
+They can do so several times sending replies to the same discussion thread, causing a growing number of e-mail messages that include the original e-mail body and has a matching regex line that triggers a phone call.
+
+This doesn't work well with the procmail recipes you'll find in this repo. Such e-mail messages will generate essentially a false-positive match. So, in addition to the original call more calls may be made, if people keep including e-mail body(-ies) in their replies that have matching procmail recipe conditions.
+
+This is a bit of a corner case, though.
+
+Consider this real-life example:
+
+```
+...
+
+Issue #86581 has been updated by Joe Doe.
+
+I have added the mount details to the /etc/fstab.
+
+Joe
+
+-----Original Message-----
+From: projectid@yourdomain.com [mailto:projectid@yourdomain.com] 
+Sent: Monday, March 06, 2017 8:44 AM
+Subject: [Project - Support #86581] Fwd: File_system_alert
+
+Issue #86581 has been updated by Joe Doe.
+
+The /x89 mount was not included in /etc/fstab as it was a temporary design for backup until we can get our backup solution working and tested. I have mounted the /x89 mount point.
+
+Joe
+
+-----Original Message-----
+From: projectid@yourdomain.com [mailto:projectid@yourdomain.com] 
+Sent: Monday, March 06, 2017 8:37 AM
+Subject: [Project - Support #86581] Fwd: File_system_alert
+
+Issue #86581 has been updated by Joe Doe.
+
+Assignee set to Joe Doe
+
+Do you have any insight as to what has happened with our backup mount.
+
+Please advise.
+
+Joe
+
+-----Original Message-----
+From: projectid@yourdomain.com [mailto:projectid@yourdomain.com] 
+Sent: Monday, March 06, 2017 8:15 AM
+Subject: [Project - Support #86581] Fwd: File_system_alert
+
+Issue #86581 has been updated by Steve Danaval.
+
+Priority changed from Medium to Emergency (Critical)
+
+/x89 is empty when viewed directly and does not appear on a df -hk listing. 
+```
+
+The original e-mail (sent at 8:15 AM) was included 4 times by various parties in their e-mail replies. procmail knows nothing about this, though. All it cares about is if there is a matching line (Priority changed from Medium to Emergency (Critical)) in an e-mail or not. So, 4 calls would be generated in total.

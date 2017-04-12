@@ -1,0 +1,8 @@
+---
+# Installs procmail-twilio
+
+- hosts: emailhost.yourdomain.com
+  become: yes
+  roles:
+  - procmail-twilio
+

@@ -1,0 +1,75 @@
+# This rc file will process a Redmine e-mail notification,
+# extract full name of the person who created or updated 
+# a ticket, as well as the ticket number and write out an 
+# XML file suitable for use with procmail-twilio.py script.
+#
+# Narrative description of what follows below:
+# 
+# - Search body of e-mail for REGEX string: 
+#
+#   ^\* Priority changed from [A-Za-z]* to Emergency \(Critical\)$ 
+#
+#   This basically identifies escalation to Emergency
+#   priority of an existing ticket.
+#
+# - If there's a match, extract user's first and last 
+#   name, project name and ticket number to generate 
+#   an XML file to pass down to Twilio. The remaining 
+#   recipe won't be used.
+#
+# - If there was no such string found in e-mail body,
+#   we continue with the :0H recipe and look for new 
+#   Emergency ticket by searching for:
+#   
+#   \(New\), in Subject: header and
+#   ^\* Priority: Emergency \(Critical\)$, in e-mail body.
+#
+#   If there's a match this time, we generate the XML 
+#   file for Twilio.
+#
+# - If the remaining :0H recipe didn't match, 
+#   we discard an e-mail message by writing it out
+#   to /dev/null.
+
+SHELL=/bin/sh
+LOGFILE="{{procmaillog}}"
+GOODLUCKFILE="{{datadir}}/goodluck"
+TWLMSGFILE="{{twimlfile}}"
+CALLSCRIPT="{{datadir}}/procmail-twilio.bash"
+
+:0B
+* ^Priority changed from [A-Za-z]* to Emergency \(Critical\)$
+{
+  :0B
+  {
+    WHO=`sed -e '1,/^$/ d' | grep -m 1 "Issue \#[0-9]* has been \(updated\|reported\) by" | cut -d " " -f 7,8 | sed -e "s:\.$::g"`
+    PROJECT=`formail -xX-Redmine-Project: | sed -e 's/^\s*//g' -e 's/\s*$//g'`
+    ISSUE=`sed -e '1,/^$/ d' | grep -m 1 "Issue \#[0-9]* has been \(updated\|reported\) by" | cut -d " " -f 2 | sed -e "s:#::g" -e "s/./& /g;s/ $//"`
+    GOODLUCK=`shuf -n 1 ${GOODLUCKFILE}`
+    TWLMSG="<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<Response>\n\t<Say voice=\"woman\" language=\"en\" loop=\"3\">Hello! Issue number, ${ISSUE}, has just been escalated to Emergency status, by user, ${WHO}. Please, respond immediately. This is issue, number, ${ISSUE}. Project is, ${PROJECT}. The contact is, ${WHO}. Oh, and one more thing...  ${GOODLUCK}!</Say>\n</Response>\n"
+    :0w:procmail-twilio-existing.lock
+    | echo "${TWLMSG}" > "${TWLMSGFILE}" && bash ${CALLSCRIPT}
+  }
+}
+
+:0H
+* ^Subject:.*\(New\)
+{ 
+  :0BA
+  * ^\* Priority: Emergency \(Critical\)$
+  { 
+    WHO=`sed -e '1,/^$/ d' | grep -m 1 "Issue \#[0-9]* has been \(updated\|reported\) by" | cut -d " " -f 7,8 | sed -e "s:\.$::g"`
+    PROJECT=`formail -xX-Redmine-Project: | sed -e 's/^\s*//g' -e 's/\s*$//g'` 
+    ISSUE=`sed -e '1,/^$/ d' | grep -m 1 "Issue \#[0-9]* has been \(updated\|reported\) by" | cut -d " " -f 2 | sed -e "s:#::g" -e "s/./& /g;s/ $//"`
+    GOODLUCK=`shuf -n 1 ${GOODLUCKFILE}`
+    TWLMSG="<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<Response>\n\t<Say voice=\"woman\" language=\"en\" loop=\"3\">Hello! New Emergency issue, number, ${ISSUE}, has just been reported, by user, ${WHO}. Please, respond immediately. This is issue, number, ${ISSUE}. Project, ${PROJECT}. The contact is, ${WHO}. Oh, and one more thing...  ${GOODLUCK}!</Say>\n</Response>\n"
+    :0w:procmail-twilio-new.lock
+    | echo "${TWLMSG}" > "${TWLMSGFILE}" && bash ${CALLSCRIPT}
+  }
+}
+
+# Discard any e-mail that doesn't match above recipes.
+# Otherwise, non-matching e-mail messages will be written
+# to /var/mail/$(whoami)
+:0
+/dev/null

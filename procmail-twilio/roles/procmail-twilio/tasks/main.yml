@@ -1,0 +1,54 @@
+---
+
+# Dependencies
+
+- name: Install dependencies on Debian/Ubuntu
+  apt: name="{{item}}" state=present update_cache=yes
+  with_items:
+     - "coreutils" # shuf
+     - "procmail"  # procmail and formail
+  when: ansible_lsb.id == "Debian" or ansible_lsb.id == "Ubuntu"
+
+- name: Install dependencies on RHEL/CentOS
+  yum: name="{{item}}" state=present
+  with_items:
+     - "coreutils"
+     - "procmail"
+  when: ansible_lsb.id == "RedHatEnterpriseServer" or ansible_lsb.id == "CentOS"
+
+# procmail-twilio
+
+- name: Create system user
+  user: name="{{username}}" shell=/bin/bash 
+
+- name: Create directories
+  file: path="{{item}}" state=directory owner="{{username}}" group="{{username}}" mode=0755
+  with_items:
+     - "{{ datadir }}"
+     - "{{ logdir }}"
+     - "{{ httprootdir }}"
+     - "{{ virtualenv_path }}"
+
+- name: Install requirements.txt
+  copy: src="../files/requirements.txt" dest="{{virtualenv_path}}/requirements.txt" owner="{{username}}" group="{{username}}" mode=0644
+
+- name: Initiate virtualenv and install requirements
+  pip: requirements="{{virtualenv_path}}/requirements.txt"
+       virtualenv="{{virtualenv_path}}"
+       virtualenv_command=virtualenv
+       virtualenv_python=python2.7
+       virtualenv_site_packages=no
+
+- name: Install {{ username }} files
+  template: src="{{item.src}}" dest="{{item.dest}}" owner="{{item.owner}}" group="{{item.group}}" mode="{{item.mode}}"
+  with_items:
+     - { src: 'procmailrc.j2', dest: '{{ rootdir }}/.procmailrc', owner: '{{ username }}', group: '{{ username }}', mode: '0644' }
+     - { src: '{{twimlname}}.j2', dest: '{{ twimlfile }}', owner: '{{ username }}', group: '{{ username }}', mode: '0644' }
+     - { src: 'procmail-twilio.bash.j2', dest: '{{ datadir }}/procmail-twilio.bash', owner: '{{ username }}', group: '{{ username }}', mode: '0644' }
+     - { src: 'procmail-twilio.py.j2', dest: '{{ virtualenv_path }}/procmail-twilio.py', owner: '{{ username }}', group: '{{ username }}', mode: '0644' }
+     - { src: 'procmail-twilio.j2', dest: '/etc/logrotate.d/procmail-twilio', owner: 'root', group: 'root', mode: '0644' }
+     - { src: '../files/goodluck', dest: '{{ datadir }}/goodluck', owner: '{{ username }}', group: '{{ username }}', mode: '0644' }
+
+- name: Create TwiML symlink
+  file: src="{{twimlfile}}" dest="{{twimlsymlink}}" state=link
+

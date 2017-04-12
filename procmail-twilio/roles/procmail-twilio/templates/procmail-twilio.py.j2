@@ -1,0 +1,130 @@
+#!/usr/bin/python
+
+# Tested with Python 2.7
+# Requires TwilioRestClient
+
+# Download the library from twilio.com/docs/libraries
+from twilio.rest import TwilioRestClient
+import sys
+import time
+import datetime
+
+# Get these credentials from http://twilio.com/user/account
+account_sid = "{{account_sid}}" 
+auth_token = "{{auth_token}}" 
+# Your Twilio phone number
+from_="{{twilionumber}}" 
+# oncall, backup and tertiary call recipient numbers
+# are passed down as arguments from the calling BASH 
+# script.
+oncall=sys.argv[1]
+backup=sys.argv[2]
+tertiary=sys.argv[3]
+
+logfile="{{callslogfile}}"
+
+
+# Makes the call and returns session id
+def makecall(to_num, from_num) :
+    try:
+        call = client.calls.create(to=to_num, from_=from_num,
+				   url="{{twiml_url}}")
+        return call.sid
+
+    except TwilioRestException as e:
+        logerror(e)
+
+# Uses session id returned by makecall() to obtain call status
+def callstatus(sid) :
+    try:
+        callinfo = client.calls.get(sid)
+        return callinfo.status
+
+    except TwilioRestException as e:
+        logerror(e)
+
+# Logs call information
+def logcall(sid, count, status, to) :
+	timestamp = str(datetime.datetime.now())
+	logentry = timestamp + " Session ID: " + sid + ", Call attempt number: " + str(count) + ", Call status: " + status + ", Call recipient: " + to + ".\n"
+        f = open(logfile, 'a')
+	f.write(logentry)
+	f.close
+
+# Logs an error message
+def logerror(message) :
+	timestamp = str(datetime.datetime.now())
+	logentry = timestamp + " ERROR: " + message + ".\n"
+        f = open(logfile, 'a')
+	f.write(logentry)
+	f.close
+
+#
+# Actual program starts here
+#
+
+client = TwilioRestClient(account_sid, auth_token)
+
+count = 0
+status = "nothing"
+
+while count < 7 :
+
+	count = count + 1
+	
+	if status in ['completed', 'in-progress'] :
+
+		break
+
+	if count == 1 :
+		to=oncall
+		sid = makecall(to, from_)
+		time.sleep({{waittime}})
+		status = callstatus(sid)
+		logcall(sid, count, status, to)
+
+	elif count == 2 :
+		to=oncall
+		sid = makecall(to, from_)
+		time.sleep({{waittime}})
+		status = callstatus(sid)
+		logcall(sid, count, status, to)
+
+	elif count == 3 :
+		to=oncall
+		sid = makecall(to, from_)
+		time.sleep({{waittime}})
+		status = callstatus(sid)
+		logcall(sid, count, status, to)
+
+	elif count == 4 :
+		to=backup
+		sid = makecall(to, from_)
+		time.sleep({{waittime}})
+		status = callstatus(sid)
+		logcall(sid, count, status, to)
+
+	elif count == 5 :
+		to=backup
+		sid = makecall(to, from_)
+		time.sleep({{waittime}})
+		status = callstatus(sid)
+		logcall(sid, count, status, to)
+
+	elif count == 6 :
+		to=tertiary
+		sid = makecall(to, from_)
+		time.sleep({{waittime}})
+		status = callstatus(sid)
+		logcall(sid, count, status, to)
+
+	elif count == 7 :
+		to=tertiary
+		sid = makecall(to, from_)
+		time.sleep({{waittime}})
+		status = callstatus(sid)
+		logcall(sid, count, status, to)
+
+	else :
+		logerror("Internal error. Check " + sys.argv[0])
+
